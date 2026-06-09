@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IconMeta, IconItem, Project, SpriteConfig } from '../types';
+import type { IconMeta, IconItem, Project, SpriteConfig, RenamePreview } from '../types';
 import { generateId, iconItemToMeta } from '../utils';
 import {
   saveIconDataUrl,
@@ -55,6 +55,7 @@ interface AppState {
   setActiveProject: (id: string | null) => void;
   addIconsToProject: (projectId: string, iconIds: string[]) => void;
   removeIconFromProject: (projectId: string, iconId: string) => void;
+  renameIcons: (renames: RenamePreview[]) => void;
 
   getIconsInProject: (projectId: string) => Promise<{
     items: IconItem[];
@@ -252,6 +253,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       saveToStorage(newProjects, state.icons);
       return { projects: newProjects };
     });
+  },
+
+  renameIcons: (renames) => {
+    if (renames.length === 0) return;
+    const renameMap = new Map(renames.map((r) => [r.id, r.newName]));
+    const renamedIds = new Set(renames.map((r) => r.id));
+
+    set((state) => {
+      const newIcons = state.icons.map((icon) =>
+        renameMap.has(icon.id) ? { ...icon, name: renameMap.get(icon.id)! } : icon
+      );
+      const newProjects = state.projects.map((p) => {
+        const hasRenamed = p.iconIds.some((id) => renamedIds.has(id));
+        return hasRenamed ? { ...p, updatedAt: Date.now() } : p;
+      });
+      saveToStorage(newProjects, newIcons);
+      return { icons: newIcons, projects: newProjects };
+    });
+    toastHandlers.showSuccess(`已重命名 ${renames.length} 个图标`);
   },
 
   getIconItem: async (meta) => {

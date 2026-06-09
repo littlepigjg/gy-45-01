@@ -22,7 +22,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { createIconItemsFromFiles, formatDate, cn } from '@/utils';
 import { useToast } from '@/components/Toast';
-import type { IconItem, Project } from '@/types';
+import BatchRenameDialog from '@/components/library/BatchRenameDialog';
+import type { IconItem, Project, RenamePreview } from '@/types';
 
 export default function Library() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function Library() {
   const [selectedIconIds, setSelectedIconIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; icon: IconItem } | null>(null);
   const [projectIcons, setProjectIcons] = useState<IconItem[]>([]);
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadStats, setLoadStats] = useState<{ total: number; loaded: number; failed: number } | null>(null);
@@ -51,6 +53,7 @@ export default function Library() {
     addIcons,
     addIconsToProject,
     removeIconFromProject,
+    renameIcons,
     getIconsInProject,
     setGeneratorIcons,
     updateSpriteConfig,
@@ -198,6 +201,22 @@ export default function Library() {
     } : null);
     setSelectedIconIds(new Set());
   };
+
+  const handleBatchRename = (renames: RenamePreview[]) => {
+    renameIcons(renames);
+    const renameMap = new Map(renames.map((r) => [r.id, r.newName]));
+    setProjectIcons((prev) =>
+      prev.map((icon) =>
+        renameMap.has(icon.id) ? { ...icon, name: renameMap.get(icon.id)! } : icon
+      )
+    );
+    setShowRenameDialog(false);
+  };
+
+  const selectedIcons = useMemo(
+    () => projectIcons.filter((i) => selectedIconIds.has(i.id)),
+    [projectIcons, selectedIconIds]
+  );
 
   const handleDeleteProject = async (p: Project) => {
     if (!confirm(`删除项目 "${p.name}"?`)) return;
@@ -553,6 +572,13 @@ export default function Library() {
                     <span className="chip bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
                       已选 {selectedIconIds.size}
                     </span>
+                    <button
+                      onClick={() => setShowRenameDialog(true)}
+                      className="btn btn-secondary !py-1.5 text-xs"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      批量重命名
+                    </button>
                     <button onClick={deleteSelected} className="btn btn-danger !py-1.5 text-xs">
                       <Trash2 className="w-3.5 h-3.5" />
                       删除
@@ -616,6 +642,13 @@ export default function Library() {
           </button>
         </div>
       )}
+
+      <BatchRenameDialog
+        open={showRenameDialog}
+        icons={selectedIcons}
+        onClose={() => setShowRenameDialog(false)}
+        onConfirm={handleBatchRename}
+      />
     </div>
   );
 }

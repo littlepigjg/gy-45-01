@@ -64,3 +64,37 @@ export interface SplitIcon {
   height: number;
   name: string;
 }
+
+export type RenameMode = 'prefix' | 'suffix' | 'replace' | 'numbering';
+
+export interface RenamePreview {
+  id: string;
+  originalName: string;
+  newName: string;
+}
+
+export interface PrefixSuffixConfig {
+  prefix: string;
+  suffix: string;
+}
+
+export interface ReplaceConfig {
+  find: string;
+  replace: string;
+  useRegex: boolean;
+  caseSensitive: boolean;
+}
+
+export interface NumberingConfig {
+  template: string;
+  start: number;
+  step: number;
+  padLength: number;
+}
+
+export interface BatchRenameConfig {
+  mode: RenameMode;
+  prefixSuffix: PrefixSuffixConfig;
+  replace: ReplaceConfig;
+  numbering: NumberingConfig;
+}
